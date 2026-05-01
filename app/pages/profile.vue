@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-
+interface Reply {
+  id: number
+  userId: string
+  user: string
+  content: string
+}
 
 interface Post {
   id: number
@@ -11,6 +16,7 @@ interface Post {
   likes: number
   liked: boolean
   visibility: string
+  replies?: Reply[]
 }
 
 const posts = useState<Post[]>('posts-data', () =>[])
@@ -56,6 +62,35 @@ const handlelike = (id: number) => {
     }
   }
 }
+
+const handleReply = (postId: number, text: string) => {
+  const targetPost = posts.value.find(p => p.id === postId)
+  
+  if (targetPost) {
+    if (!targetPost.replies) {
+      targetPost.replies = []
+    }
+    
+    targetPost.replies.push({
+      id: Date.now(),
+      userId: userProfile.value.id,
+      user: userProfile.value.name,
+      content: text
+    })
+
+    if (targetPost.userId !== userProfile.value.id) {
+      notifications.value.unshift({
+        id: Date.now(),
+        message: `${userProfile.value.name}さんが投稿に返信しました`,
+        time: new Date().toLocaleTimeString()
+      })
+    }
+  }
+}
+
+const homePosts = computed(() => {
+  return posts.value.filter(p => p.visibility === 'public' || p.visibility === 'followers')
+})
 
 const onAvatarChange = (e: Event) => {
   const target = e.target as HTMLInputElement
@@ -107,7 +142,7 @@ const onAvatarChange = (e: Event) => {
           </label>
           
 
-          <button class="save-btn" @click="isEditing = false">保存</button>
+          <button class="save-btn" @click="saveProfile">保存</button>
         </div>
       </div>
 

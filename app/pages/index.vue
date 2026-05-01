@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import type { st } from 'vue-router/dist/index-BzEKChPW.js'
 
+
+interface Reply {
+  id: number
+  userId: string
+  user: string
+  content: string
+}
+
+
 interface Post {
   id: number
   userId: string
@@ -9,9 +18,10 @@ interface Post {
   likes: number
   liked: boolean
   visibility: string
+  replies?: Reply[]
 }
 
-const View = ref('home')
+// const View = ref('home')
 
 const posts = useState<Post[]>('posts-data', () => [])
 const notifications = useState<any[]>('notif-data', () => [])
@@ -63,9 +73,41 @@ const handlelike = (id: number) => {
   }}
 }
 
+const handleReply = (postId: number, text: string) => {
+  
+  const targetPost = posts.value.find(p => p.id === postId)
+  
+  if (targetPost) {
+    if (!targetPost.replies) {
+      targetPost.replies = []
+    }
+
+    targetPost.replies.push({
+      id: Date.now(),
+      userId: userProfile.value.id,
+      user: userProfile.value.name,
+      content: text
+    })
+
+    if (targetPost.userId !== userProfile.value.id) {
+      notifications.value.unshift({
+        id: Date.now(),
+        message: `${userProfile.value.name}さんが投稿に返信しました`,
+        time: new Date().toLocaleTimeString()
+      })
+    }
+  }
+}
+
+
 const homePosts = computed(() => {
   return posts.value.filter(p => p.visibility === 'public' || p.visibility === 'followers')
 })
+
+const myPosts = computed(() => {
+  return posts.value.filter(p => p.userId === userProfile.value.id)
+})
+
 </script>
 
 
@@ -76,7 +118,8 @@ const homePosts = computed(() => {
       <div class="divider"></div>
     </div>
 
-    <Timeline :posts="homePosts" @like="handlelike" />
+    <Timeline :posts="homePosts" @like="handlelike" @reply="handleReply"/>
+
     
   </div>
 </template>

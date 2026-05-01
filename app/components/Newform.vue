@@ -97,13 +97,7 @@ textarea {
   padding: 10px 0;
 }
 
-.user-icon-sample { 
-    width: 50px; 
-    height: 50px; 
-    background: #aaa; 
-    border-radius: 50%; 
-    flex-shrink: 0; 
-}
+
 
 .form-bottom { 
     display: flex; 
