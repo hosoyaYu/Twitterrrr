@@ -88,9 +88,12 @@ const handleReply = (postId: number, text: string) => {
   }
 }
 
-const homePosts = computed(() => {
-  return posts.value.filter(p => p.visibility === 'public' || p.visibility === 'followers')
-})
+const handleDelete = (postId: number) => {
+  const isOk = confirm('投稿を削除しますか？')
+  if (isOk) {
+    posts.value = posts.value.filter(p => p.id !== postId)
+  }
+}
 
 const onAvatarChange = (e: Event) => {
   const target = e.target as HTMLInputElement
@@ -153,7 +156,7 @@ const onAvatarChange = (e: Event) => {
 
     </div>
 
-    <Timeline :posts="myPosts" @like="handlelike" />
+    <Timeline :posts="myPosts" :current-user-id="userProfile.id" @like="handlelike" @delete="handleDelete"/>
 
   </div>
 </template>

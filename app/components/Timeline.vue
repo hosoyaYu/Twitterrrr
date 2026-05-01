@@ -17,6 +17,7 @@
         <div class="action">
           <button class="like-button" @click="toggleReply(post.id)">💬{{ post.replies ? post.replies.length : 0}}</button>
           <button class="like-button" @click="$emit('like', post.id)">♡{{  post.likes }}</button>
+          <button v-i="post.userId === currentUserId" class="like-button delete-button" @click="$emit('delete', post.id)">削除</button>
         </div>
 
         <div v-if="activeReplyId === post.id" class="reply-input-area">
@@ -38,8 +39,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-defineProps<{ posts: any[] }>()
-const emit = defineEmits(['like','reply'])
+
+defineProps<{
+  posts: any[]
+  currentUserId: string
+}>()
+
+const emit = defineEmits(['like','reply', 'delete'])
 
 
 const activeReplyId =ref<number | null>(null)
@@ -159,6 +165,7 @@ const submitReply = (id: number) => {
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   padding: 10px;
+  color: white;
 }
 
 .reply-item {

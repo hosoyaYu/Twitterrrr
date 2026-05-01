@@ -17,10 +17,16 @@ const notifications = useState<any[]>('notif-data', () => [])
         まだ通知はありません
       </div>
 
-      <div v-for="n in notifications" :key="n.id" class="notif-card">
-        {{ n.message }}
-        <span class="time">{{ n.time }}</span>
+      <div v-for="notif in notifications" :key="notif.id" class="notification-item">
+        <div class="notif-header">
+          <strong>{{ notif.userName }}</strong>{{ notif.message }}
+          <span class="notif-time">{{  notif.time }}</span>
+        </div>
+
+        
       </div>
+
+      
     </div>
   </div>
 </template>
@@ -45,10 +51,20 @@ const notifications = useState<any[]>('notif-data', () => [])
   padding: 20px;
 }
 
-.notif-card {
+.notification-item{
   border-bottom: 1px solid #333;
   padding: 15px 0;
   font-size: 16px;
+}
+
+.notif-content-preview {
+  margin-top: 5px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #ccc;
+  border-left: 3px solid #1da1f2; 
 }
 
 .time {

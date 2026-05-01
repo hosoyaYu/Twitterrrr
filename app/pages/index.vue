@@ -73,8 +73,7 @@ const handlelike = (id: number) => {
   }}
 }
 
-const handleReply = (postId: number, text: string) => {
-  
+const handleReply = (postId: number, text: string) => {  
   const targetPost = posts.value.find(p => p.id === postId)
   
   if (targetPost) {
@@ -89,13 +88,24 @@ const handleReply = (postId: number, text: string) => {
       content: text
     })
 
-    if (targetPost.userId !== userProfile.value.id) {
+    if (targetPost.userId === userProfile.value.id) {
       notifications.value.unshift({
         id: Date.now(),
         message: `${userProfile.value.name}さんが投稿に返信しました`,
         time: new Date().toLocaleTimeString()
       })
     }
+
+   
+  }
+}
+
+    
+  
+const handeledelete = (postId: number) => {
+  const isOk = confirm('投稿を削除しますか？')
+  if (isOk){
+    posts.value = posts.value.filter(p => p.id !== postId)
   }
 }
 
@@ -118,7 +128,7 @@ const myPosts = computed(() => {
       <div class="divider"></div>
     </div>
 
-    <Timeline :posts="homePosts" @like="handlelike" @reply="handleReply"/>
+    <Timeline :posts="homePosts" :current-user-id="userProfile.id"  @like="handlelike" @reply="handleReply" @delete="handeledelete"/>
 
     
   </div>
