@@ -21,12 +21,9 @@ interface Post {
 
 const posts = useState<Post[]>('posts-data', () =>[])
 const notifications = useState<any[]>('notifdata', () => [])
-const userProfile = useState('user-profile', () => ({
-  id: 'user-123',
-  name: 'テスト',
-  bio: 'これもテスト',
-  avatarUrl: ''
-}))
+const userProfile = useUserProfile()
+
+const editName = ref(userProfile.value.name)
 
 const isEditing = ref(false)
 
@@ -35,6 +32,8 @@ const myPosts = computed(() => {
 })
 
 const saveProfile = () => {
+  userProfile.value.name = editName.value
+
   posts.value.forEach(p => {
     if (p.userId === userProfile.value.id){
       p.user = userProfile.value.name
@@ -83,7 +82,7 @@ const handleReply = (postId: number, text: string) => {
         id: Date.now(),
         message: `${userProfile.value.name}さんが投稿に返信しました`,
         time: new Date().toLocaleTimeString()
-      })
+    })
     }
   }
 }

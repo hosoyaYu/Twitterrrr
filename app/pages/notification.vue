@@ -2,6 +2,10 @@
 import Sidebar from '~/components/Sidebar.vue'
 
 const notifications = useState<any[]>('notif-data', () => [])
+
+const goToPost = (postId: any) => {
+  navigateTo(`/posts/${postId}`)
+}
 </script>
 
 <template>
@@ -17,16 +21,12 @@ const notifications = useState<any[]>('notif-data', () => [])
         まだ通知はありません
       </div>
 
-      <div v-for="notif in notifications" :key="notif.id" class="notification-item">
+      <div v-for="notif in notifications" :key="notif.id" class="notification-item" @click="goToPost(notif.postId)" style="cursor: pointer;">
         <div class="notif-header">
           <strong>{{ notif.userName }}</strong>{{ notif.message }}
           <span class="notif-time">{{  notif.time }}</span>
         </div>
-
-        
       </div>
-
-      
     </div>
   </div>
 </template>

@@ -3,6 +3,9 @@
         <Sidebar />
         <Header />
         
-        <slot /> 
+        <slot />
+        
+         
     </div>
 </template>
+

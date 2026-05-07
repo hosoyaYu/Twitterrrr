@@ -1,15 +1,7 @@
 <script setup lang="ts">
 const emit = defineEmits(['notif'])
 
-const goToNotif = () => {
-  emit('notif', 'notif') 
-  console.log("サイドバー：通知ボタンが押されたよ！")
-}
 
-const goToHome = () => {
-  console.log("サイドバー：ホームボタンが押されたよ！")
-  emit('notif', 'home')  
-}
 </script>
 
 

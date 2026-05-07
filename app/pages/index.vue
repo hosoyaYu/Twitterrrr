@@ -21,17 +21,11 @@ interface Post {
   replies?: Reply[]
 }
 
-// const View = ref('home')
 
-const posts = useState<Post[]>('posts-data', () => [])
+
+const posts = usePosts()
 const notifications = useState<any[]>('notif-data', () => [])
-const userProfile = useState('user-profile', () => ({
-  id: 'user-123',
-  name: "テスト",
-  bio: "これもテスト",
-  avatarUrl: '',
-  headerUrl:''
-}))
+const userProfile = useUserProfile()
 
 
 const handleAddPost = (text: string, visibility: string) => {
@@ -42,7 +36,8 @@ const handleAddPost = (text: string, visibility: string) => {
     content: text,
     likes: 0,
     liked: false,
-    visibility: visibility
+    visibility: visibility,
+    replies: []
   })
 }
 
@@ -59,7 +54,9 @@ const handlelike = (id: number) => {
 
       notifications.value.unshift({
         id: Date.now(),
-        message: `${postlike.user}さんが投稿 「${snipppet}」にいいねしました`,
+        type: 'like',
+        postId: postlike.id,
+        message: `${userProfile.value.name}さんが投稿 「${snipppet}」にいいねしました`,
         time: new Date().toLocaleTimeString()
       })
     }
@@ -85,38 +82,40 @@ const handleReply = (postId: number, text: string) => {
       id: Date.now(),
       userId: userProfile.value.id,
       user: userProfile.value.name,
-      content: text
+      content: text,
     })
 
     if (targetPost.userId === userProfile.value.id) {
       notifications.value.unshift({
         id: Date.now(),
+        type: 'reply',
+        postId: targetPost.id,
+        userName: userProfile.value.name,
         message: `${userProfile.value.name}さんが投稿に返信しました`,
-        time: new Date().toLocaleTimeString()
+        content: text,
+        time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit' , minute: '2-digit'}),
+        isRead: false
       })
     }
 
-   
   }
 }
-
-    
   
-const handeledelete = (postId: number) => {
-  const isOk = confirm('投稿を削除しますか？')
-  if (isOk){
-    posts.value = posts.value.filter(p => p.id !== postId)
-  }
-}
+    const handeledelete = (postId: number) => {
+      const isOk = confirm('投稿を削除しますか？')
+      if (isOk){
+        posts.value = posts.value.filter(p => p.id !== postId)
+      }
+    }
 
 
-const homePosts = computed(() => {
-  return posts.value.filter(p => p.visibility === 'public' || p.visibility === 'followers')
-})
-
-const myPosts = computed(() => {
-  return posts.value.filter(p => p.userId === userProfile.value.id)
-})
+    const homePosts = computed(() => {
+      return posts.value.filter(p => p.visibility === 'public' || p.visibility === 'followers')
+    })
+    
+    const myPosts = computed(() => {
+      return posts.value.filter(p => p.userId === userProfile.value.id)
+    })
 
 </script>
 
