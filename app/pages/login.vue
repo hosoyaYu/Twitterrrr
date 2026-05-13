@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const userProfile = useUserProfile()
+
 definePageMeta({ layout: 'auth'})
 
 const userId = ref("")
@@ -24,23 +26,41 @@ const handleLogin = async () => {
             }
         })
 
+        console.log("ログインAPIの生データ:", response)
 
-        if (response.data && response.data.token){
+        const apiToken = response.accessToken || response.data?.accessToken
+
+        if (apiToken){
             const token = useCookie('auth_token' , {
-                maxAge: 60 * 60 * 24 * 7
+                maxAge: 60 * 60 * 24 * 7,
+                path: '/'
             })
-            token.value = response.data.token
+            token.value = apiToken
 
-            alert('ログイン成功')
+            console.log("クッキー保存:", token.value)
+
+            const userData = response.user || response.data?.user || response.data || response
+
+            userProfile.value = { 
+                id: userData.id,
+                username: userData.username,
+                name:userData.displayName || userData.username,
+                bio: userData.bio || '',
+                avatarUrl: userData.profileImageUrl || ''
+            }
+            
             navigateTo('/')
+        } else {
+             console.error(" APIは成功したけど、トークンが見つかりません！")
         }
 
-    } catch (e: any){
+     } catch (e: any){
+        
         errorMessage.value = e.data?.message || "ログイン失敗"
-    } finally {
+        password.value = ""
+      } finally {
         isPending.value = false
     }
-
 }
 
 </script>

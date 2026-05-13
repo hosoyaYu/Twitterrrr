@@ -1,56 +1,83 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import Sidebar from '~/components/Sidebar.vue';
 
-interface Reply {
-  id: number
-  userId: string
-  user: string
-  content: string
-}
+const token = useCookie('auth_token')
 
-interface Post {
-  id: number
-  userId: string
-  user: string
-  content: string
-  likes: number
-  liked: boolean
-  visibility: string
-  replies?: Reply[]
-}
-
-const posts = useState<Post[]>('posts-data', () =>[])
-const notifications = useState<any[]>('notifdata', () => [])
+const posts = usePosts()
+const notifications = useNotifications()
 const userProfile = useUserProfile()
-
-const editName = ref(userProfile.value.name)
+const followRequests = useFollowRequests()
 
 const isEditing = ref(false)
+const activeTab = ref('posts') 
+
+const { data: apiResponse, pending, error, refresh} = await useFetch<any>('https://apg-joetsu.tail02904.ts.net/api/users/me', {
+  server: false,
+  onRequest({ options }) {
+    if (token.value) {
+      const headers = new Headers(options.headers as HeadersInit)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  }
+})
+
+const user = computed(() => apiResponse.value?.data || {})
+
+const editName = ref('')
+const editBio = ref('')
+
+const startEditing = () => {
+  editName.value = user.value.displyName || user.value.username || ''
+  editBio.value = user.value.bio || ''
+  isEditing.value = true 
+}
 
 const myPosts = computed(() => {
   return posts.value.filter(p => p.userId === userProfile.value.id)
 })
 
-const saveProfile = () => {
-  userProfile.value.name = editName.value
+const saveProfile = async () => {
+  try {
+    const response = await $fetch<any>('https://apg-joetsu.tail02904.ts.net/api/users/me', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token.value}`
+      },
+      body: {
+        displayName: editName.value,
+        bio: editBio.value
+      }
+    })
 
-  posts.value.forEach(p => {
-    if (p.userId === userProfile.value.id){
-      p.user = userProfile.value.name
+    if (response && response.data) {
+      apiResponse.value.data = response.data
+      await refresh()
     }
-  })
-  isEditing.value = false
+    isEditing.value = false
+
+
+  } catch (err) {
+    console.error('プロフィールの保存に失敗しました:', err)
+    alert('プロフィールの保存に失敗しました。もう一度お試しください。')
+  }
 }
 
 const handlelike = (id: number) => {
   const postlike = posts.value.find(p => p.id === id)
   if (postlike){
     if(!postlike.liked) {
-      notifications.value.unshift({
-        id: Date.now(),
-        message: `${postlike.user}さんの投稿にいいねしました`,
-        time: new Date().toLocaleTimeString()
-      })
+      notifications.value = [
+        {
+          id: Date.now(),
+          userName: user.value.displayName || user.value.username,
+          message: ` が ${postlike.user}さんの投稿にいいねしました`, 
+          time: new Date().toLocaleTimeString(),
+          postId: postlike.id
+        },
+        ...notifications.value
+      ]
     }
     if (postlike.liked){
       postlike.likes--
@@ -62,8 +89,8 @@ const handlelike = (id: number) => {
   }
 }
 
-const handleReply = (postId: number, text: string) => {
-  const targetPost = posts.value.find(p => p.id === postId)
+const handleReply = (postId: any, text: string) => {
+  const targetPost = posts.value.find(p => p.id === Number(postId))
   
   if (targetPost) {
     if (!targetPost.replies) {
@@ -73,17 +100,24 @@ const handleReply = (postId: number, text: string) => {
     targetPost.replies.push({
       id: Date.now(),
       userId: userProfile.value.id,
-      user: userProfile.value.name,
+      user: user.value.displayName || user.value.username,
       content: text
     })
-
-    if (targetPost.userId !== userProfile.value.id) {
-      notifications.value.unshift({
+    
+    notifications.value = [
+      {
         id: Date.now(),
-        message: `${userProfile.value.name}さんが投稿に返信しました`,
-        time: new Date().toLocaleTimeString()
-    })
-    }
+        userName: user.value.displyName || user.value.username,
+        message: ` が ${targetPost.user}さんの投稿に返信しました`,
+        time: new Date().toLocaleTimeString(),
+        postId: targetPost.id 
+      },
+      ...notifications.value
+    ]
+    
+  } else {
+
+    alert("エラー：返信先の投稿が見つかりませんでした")
   }
 }
 
@@ -124,9 +158,9 @@ const onAvatarChange = (e: Event) => {
         </div>
 
         <div v-if="!isEditing" class="user-info">
-          <h2>{{ userProfile.name }}</h2>
-          <p class="user-id">@{{ userProfile.name }}</p>
-          <p class="user-bio">{{ userProfile.bio }}</p>
+          <h2>{{ user.displayName || user.username || '読み込み中' }}</h2>
+          <p class="user-id">@{{ user.username || '...' }}</p>
+          <p class="user-bio">{{ user.bio || '自己紹介はまだありません' }}</p>
           
           <div class="user-stats">
             <span><strong>0</strong> フォロー中</span>
@@ -135,8 +169,8 @@ const onAvatarChange = (e: Event) => {
         </div>
 
         <div v-else class="edit-form">
-          <input v-model="userProfile.name" type="text" placeholder="名前" class="edit-input" />
-          <textarea v-model="userProfile.bio" placeholder="自己紹介" class="edit-textarea"></textarea>
+          <input v-model="editName" type="text" placeholder="名前" class="edit-input" />
+          <textarea v-model="editBio" placeholder="自己紹介" class="edit-textarea"></textarea>
 
           <label class="file-label">
             アイコンを変更
@@ -149,16 +183,35 @@ const onAvatarChange = (e: Event) => {
       </div>
 
       <div class="profile-tabs">
-        <div class="tab active">投稿</div>
-        <div class="tab">いいね</div>
+        <div class="tab" :class="{ active: activeTab === 'posts' }" @click="activeTab = 'posts'">投稿</div>
+        <div class="tab" :class="{ active: activeTab === 'likes' }" @click="activeTab = 'likes'">いいね</div>
+      </div>
+
+    </div> <div class="tab-content" style="width: 100%; max-width: 600px; margin: 0 auto;">
+      
+      <div v-if="activeTab === 'posts'">
+        <Timeline :posts="myPosts" :current-user-id="userProfile.id" @like="handlelike" @reply="handleReply" @delete="handleDelete"/>
+      </div>
+
+      <div v-else-if="activeTab === 'likes'">
+        <p style="text-align:center; padding:40px; color:#888;">まだいいねした投稿はありません</p>
+      </div>
+
+      <div v-else-if="activeTab === 'requests'">
+        <div v-if="followRequests.length > 0">
+          <div v-for="req in followRequests" :key="req.id" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #333;">
+            <div>
+              <strong>{{ req.name }}</strong>
+              <span style="color:#888; margin-left:8px;">@{{ req.username }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-else style="text-align:center; padding:40px; color:#888;">届いているリクエストはありません</p>
       </div>
 
     </div>
 
-    <Timeline :posts="myPosts" :current-user-id="userProfile.id" @like="handlelike" @delete="handleDelete"/>
-
-  </div>
-</template>
+  </div> </template>
 
 
 <style scoped>
@@ -211,6 +264,8 @@ const onAvatarChange = (e: Event) => {
   background-color: #888;
   border-radius: 50%;
   border: 4px solid #121212; 
+  background-size: cover;
+  background-position: center;
 }
 
 
