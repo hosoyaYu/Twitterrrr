@@ -66,12 +66,12 @@ const adjustHeight = () => {
 }
 
 const handleSubmit = () => {
-  if (text.value.trim() === '' && !selectedImage.value) return // テキストも画像もない場合は何もしない
+  if (text.value.trim() === '' && !selectedImage.value) return 
 
-  // テキストと画像ファイルの両方を親（index.vue）に渡す！
+
   emit('submit-post', text.value, visibility.value, selectedImage.value)
 
-  // フォームをリセット
+
   text.value = ''
   removeImage()
 }
@@ -109,7 +109,7 @@ textarea {
   padding: 10px 0;
 }
 
-/* 🌟 ボタン周りのレイアウト調整 */
+
 .form-actions-wrapper {
   display: flex;
   justify-content: space-between;
@@ -132,7 +132,6 @@ textarea {
   cursor: pointer;
 }
 
-/* 🌟 画像アップロードアイコンのスタイル */
 .hidden-file-input {
   display: none;
 }
@@ -146,7 +145,7 @@ textarea {
   transform: scale(1.1);
 }
 
-/* 🌟 画像プレビューのスタイル */
+
 .image-preview-container {
   position: relative;
   margin-top: 10px;
