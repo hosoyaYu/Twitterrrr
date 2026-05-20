@@ -42,7 +42,8 @@ const formatPost = (p: any) => {
         replyToId: p.replyToId,
         visibility: p.visibility,
         avatarUrl: p.author?.profileImageUrl,
-        createdAt: p.createdAt
+        createdAt: p.createdAt,
+        imageUrl: p.images && p.images.length > 0 ? p.images[0] : null
     }
 }
 
@@ -54,7 +55,8 @@ const parentPost = computed(() => {
 
 const replyPosts = computed(() => {
     if (!repliesRes.value?.data) return []
-    return repliesRes.value.data.map(formatPost)
+    const allReplies = repliesRes.value.data.map(formatPost)
+    return allReplies.filter((reply: any) => String(reply.replyToId) === String(postId))
 })
 
 const goBack = () => {
