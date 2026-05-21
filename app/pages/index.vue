@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, type PropType } from 'vue'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
+const notifications = useNotifications()
 const token = useCookie('auth_token')
 const userProfile = useUserProfile()
-
-
 const activeTab = ref('home') 
-
 
 const { data: homeRes, refresh: refreshHome } = await useFetch<any>('https://apg-joetsu.tail02904.ts.net/api/messages/timeline', {
   server: false,
@@ -31,10 +33,44 @@ const { data: publicRes, refresh: refreshPublic } = await useFetch<any>('https:/
   }
 })
 
+const { data: notificationRes, refresh: refreshNotifications } = await useFetch<any>('https://apg-joetsu.tail02904.ts.net/api/notifications', {
+  server: false,
+  params: { limit: 20 },
+  onRequest({ options }) {
+    if (token.value) {
+      const headers = new Headers(options.headers as HeadersInit)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  }
+})
+
+watch(notificationRes, (newVal) => {
+  if (newVal?.data && Array.isArray(newVal.data)) {
+    notifications.value = newVal.data.map((n: any) => {
+      let msg = '通知があります'
+      if (n.type === 'like') msg = ' があなたの投稿にいいねしました'
+      if (n.type === 'reply') msg = ' があなたにリプライしました'
+      if (n.type === 'follow') msg = ' にフォローされました'
+      if (n.type === 'follow_request') msg = ' からフォローリクエストを受け取りました'
+      
+      return {
+        id: n.id,
+        userName: n.actor?.displayName || n.actor?.username || '不明なユーザー',
+        message: msg,
+        time: new Date(n.createdAt).toLocaleTimeString(),
+        postId: n.targetId,
+        isRead: n.isRead
+      }
+    })
+  }
+}, { immediate: true })
 
 const formatPosts = (apiData: any) => {
-  if (!apiData?.data) return []
-  return apiData.data.map((p: any) => ({
+  const rawPosts = apiData?.data?.messages || apiData?.data || []
+  if (!Array.isArray(rawPosts)) return []
+  
+  return rawPosts.map((p: any) => ({
     id: p.id,
     userId: p.author?.id || p.userId,
     user: p.author?.displayName || p.author?.username || '名無し',
@@ -44,90 +80,67 @@ const formatPosts = (apiData: any) => {
     visibility: p.visibility,
     replyCount: p.replyCount,
     replyToId: p.replyToId,
-    replyTo: p.replyTo,
     avatarUrl: p.author?.profileImageUrl,
     createdAt: p.createdAt,
-    imageUrl: p.imageUrl || p.mediaUrl || null
+    imageUrl: p.images && p.images.length > 0 ? p.images[0] : null,
+    isFollowing: p.author?.isFollowing || false
   }))
 }
 
 const homePosts = computed(() => formatPosts(homeRes.value))
 const publicPosts = computed(() => formatPosts(publicRes.value))
+const currentPosts = computed(() => activeTab.value === 'home' ? homePosts.value : publicPosts.value)
 
-
-const currentPosts = computed(() => {
-  return activeTab.value === 'home' ? homePosts.value : publicPosts.value
-})
-
-const refreshAll = () => Promise.all([refreshHome(), refreshPublic()])
+const refreshAll = () => Promise.all([refreshHome(), refreshPublic(), refreshNotifications()])
 
 
 const handleAddPost = async (text: string, visibility: string, imageFile: File | null) => {
   if (!token.value) return
-
   try {
-    let uploadImageUrl = null
-    if (imageFile){
+    let uploadedImageUrl = null
+    if (imageFile) {
       const formData = new FormData()
-      formData.append('file', imageFile)
-
+      formData.append('image', imageFile) 
       const uploadRes: any = await $fetch('https://apg-joetsu.tail02904.ts.net/api/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token.value}`},
+        headers: { Authorization: `Bearer ${token.value}` },
         body: formData
       })
-      uploadImageUrl = uploadRes.url || uploadRes.imageUrl || uploadRes.filePath || uploadRes
-    }
-
-    const postBody: any = {
-      content: text,
-      visibility: visibility || 'public'
-    }
-    if (uploadImageUrl) {
-      postBody.imageUrl = uploadImageUrl
+      uploadedImageUrl = uploadRes?.imageUrl || uploadRes?.data?.imageUrl || uploadRes
     }
 
     await $fetch('https://apg-joetsu.tail02904.ts.net/api/messages', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
-      body: { content: text, visibility: visibility || 'public' }
+      body: { content: text, visibility, images: uploadedImageUrl ? [uploadedImageUrl] : [] }
     })
     await refreshAll()
-  } catch (error){
-    console.error('投稿エラー:', error)
-  }
+  } catch (error) { console.error('投稿エラー:', error) }
 }
 
 const handlelike = async (id: string | number) => {
-  const currentToken = useCookie('auth_token').value
-  if (!currentToken) return
+  if (!token.value) return
   const targetPost = currentPosts.value.find((p: any) => String(p.id) === String(id))
   if (!targetPost) return
   try {
-    const method = targetPost.liked ? 'DELETE' : 'POST'
     await $fetch(`https://apg-joetsu.tail02904.ts.net/api/messages/${id}/like`, {
-      method: method,
-      headers: { Authorization: `Bearer ${currentToken}` }
+      method: targetPost.liked ? 'DELETE' : 'POST',
+      headers: { Authorization: `Bearer ${token.value}` }
     })
-    await refreshAll()
-  } catch (error: any) {
-    console.error('いいねエラー:', error)
-  }
+    await refreshAll() 
+  } catch (error) { console.error('いいねエラー:', error) }
 }
 
 const handleReply = async (postId: any, text: string) => {
-  console.log('送信するリプライ情報:', { content: text, replyToId: postId })
-
+  if (!token.value) return
   try {
     await $fetch('https://apg-joetsu.tail02904.ts.net/api/messages', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token.value}`},
+      headers: { Authorization: `Bearer ${token.value}` },
       body: { content: text, replyToId: String(postId) }
     })
-    await refreshAll()
-  } catch (error) {
-    console.error('リプライエラー:', error)
-  }
+    await refreshAll() 
+  } catch (error) { console.error('リプライエラー:', error) }
 }
 
 const handeleDelete = async (postId: number | string) => {
@@ -138,9 +151,7 @@ const handeleDelete = async (postId: number | string) => {
       headers: { Authorization: `Bearer ${token.value}` }
     })
     await refreshAll()
-  } catch (error) {
-    alert("エラー: 自分以外の投稿は削除できません")
-  }
+  } catch (error) { alert("エラー: 自分以外の投稿は削除できません") }
 }
 </script>
 
@@ -172,7 +183,6 @@ const handeleDelete = async (postId: number | string) => {
 </template>
 
 <style>
-/* 🌟 元のスタイルは絶対に変えない 🌟 */
 html, body {
   background-color: #121212 !important; 
   margin: 0;
@@ -206,11 +216,10 @@ html, body {
   margin-top: 15px;
 }
 
-/* 🌟 タブ用のスタイルだけを慎重に追加 🌟 */
 .tab-container {
   display: flex;
   width: 100%;
-  max-width: 600px; /* Timelineの幅に合わせる */
+  max-width: 600px;
   border-bottom: 1px solid #333;
   margin-bottom: 10px;
 }

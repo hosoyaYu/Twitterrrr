@@ -17,7 +17,7 @@
         <div class="user-info">
           <h3 class="username">{{ post.user }}</h3>
           <div @click.stop>
-            <FollowButton :targetUserId="post.userId" :targetUsername="post.user" :targetName="post.user" :isPrivate="true" />
+            <FollowButton v-if="post.userId !== currentUserId" :targetUserId="post.userId" :targetUsername="post.user" :targetName="post.user" :isPrivate="true" />
           </div>
           <span v-if="post.visibility === 'followers'" class="visibility-icon">👥</span>
           <span v-if="post.visibility === 'private'" class="visibility-icon">🔒</span>
@@ -25,6 +25,10 @@
 
         <div class="content-text-box">
           <p>{{ post.content }}</p>
+        </div>
+
+        <div v-if="post.imageUrl" class="post-image-container">
+          <img :src="post.imageUrl" class="post-image" alt="投稿画像" loading="lazy" />
         </div>
 
         <div class="action">
@@ -51,14 +55,20 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, type PropType } from 'vue'
 import { useRouter } from 'vue-router'
 import FollowButton from './FollowButton.vue';
 
-defineProps<{
-  posts: any[]
-  currentUserId: string
-}>()
+const props = defineProps({
+  posts: {
+    type: Array as PropType<any[]>,
+    required: true
+  },
+  currentUserId: {
+    type: [String, Number],
+    default: null
+  }
+})
 
 const emit = defineEmits(['like','reply', 'delete'])
 const router = useRouter()
@@ -208,6 +218,21 @@ const submitReply = (id: number) => {
   font-weight: bold;
   color: #888;
   margin-right: 8px;
+}
+
+.post-image-cpntainer {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid #333;
+  overflow: hidden;
+  width: 100%;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  display: block;
 }
 
 
