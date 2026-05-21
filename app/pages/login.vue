@@ -28,9 +28,14 @@ const handleLogin = async () => {
     })
 
     const apiToken = response.accessToken || response.data?.accessToken
+    const refreshToken = response.refreshToken || response.data?.refreshToken
 
     if (apiToken) {
-      const token = useCookie('auth_token', {
+        useCookie('auth_token').value = apiToken
+        if (refreshToken) {
+            useCookie('auth_refresh_token').value = refreshToken
+        }
+        const token = useCookie('auth_token', {
         maxAge: 60 * 60 * 24 * 7,
         path: '/'
       })
