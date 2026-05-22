@@ -17,7 +17,7 @@ const logout = async () => {
       }
     })
   } catch (e) {
-    console.error('Logout API error:', e)
+    
   } finally {
 
     authToken.value = null

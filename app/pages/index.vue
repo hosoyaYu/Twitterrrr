@@ -1,3 +1,4 @@
+index.vueは下記のように設定書いてください
 <script setup lang="ts">
 import { ref, computed, watch, type PropType } from 'vue'
 
@@ -8,7 +9,7 @@ definePageMeta({
 const notifications = useNotifications()
 const token = useCookie('auth_token')
 const userProfile = useUserProfile()
-const activeTab = ref('home') 
+const activeTab = ref('home')
 
 const { data: homeRes, refresh: refreshHome } = await useFetch<any>('https://apg-joetsu.tail02904.ts.net/api/messages/timeline', {
   server: false,
@@ -53,7 +54,7 @@ watch(notificationRes, (newVal) => {
       if (n.type === 'reply') msg = ' があなたにリプライしました'
       if (n.type === 'follow') msg = ' にフォローされました'
       if (n.type === 'follow_request') msg = ' からフォローリクエストを受け取りました'
-      
+
       return {
         id: n.id,
         userName: n.actor?.displayName || n.actor?.username || '不明なユーザー',
@@ -69,7 +70,7 @@ watch(notificationRes, (newVal) => {
 const formatPosts = (apiData: any) => {
   const rawPosts = apiData?.data?.messages || apiData?.data || []
   if (!Array.isArray(rawPosts)) return []
-  
+
   return rawPosts.map((p: any) => ({
     id: p.id,
     userId: p.author?.id || p.userId,
@@ -100,19 +101,20 @@ const handleAddPost = async (text: string, visibility: string, imageFile: File |
     let uploadedImageUrl = null
     if (imageFile) {
       const formData = new FormData()
-      formData.append('image', imageFile) 
+      formData.append('image', imageFile)
       const uploadRes: any = await $fetch('https://apg-joetsu.tail02904.ts.net/api/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token.value}` },
         body: formData
       })
-      uploadedImageUrl = uploadRes?.imageUrl || uploadRes?.data?.imageUrl || uploadRes
+      uploadedImageUrl = uploadRes?.imageUrl
+      if (!uploadedImageUrl) throw new Error('画像URLの取得に失敗しました')
     }
 
     await $fetch('https://apg-joetsu.tail02904.ts.net/api/messages', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
-      body: { content: text, visibility, images: uploadedImageUrl ? [uploadedImageUrl] : [] }
+      body: { content: text, visibility, imageUrls: uploadedImageUrl ? [uploadedImageUrl] : [] }
     })
     await refreshAll()
   } catch (error) { console.error('投稿エラー:', error) }
@@ -127,7 +129,7 @@ const handlelike = async (id: string | number) => {
       method: targetPost.liked ? 'DELETE' : 'POST',
       headers: { Authorization: `Bearer ${token.value}` }
     })
-    await refreshAll() 
+    await refreshAll()
   } catch (error) { console.error('いいねエラー:', error) }
 }
 
@@ -139,7 +141,7 @@ const handleReply = async (postId: any, text: string) => {
       headers: { Authorization: `Bearer ${token.value}` },
       body: { content: text, replyToId: String(postId) }
     })
-    await refreshAll() 
+    await refreshAll()
   } catch (error) { console.error('リプライエラー:', error) }
 }
 
@@ -158,7 +160,7 @@ const handeleDelete = async (postId: number | string) => {
 <template>
   <div class="maincontent">
     <div class="sticky-wrapper">
-      
+
       <div class="tab-container">
         <div class="tab-item" :class="{ active: activeTab === 'home' }" @click="activeTab = 'home'">
           フォロー中
@@ -172,11 +174,11 @@ const handeleDelete = async (postId: number | string) => {
       <div class="divider"></div>
     </div>
 
-    <Timeline 
-      :posts="currentPosts" 
-      :current-user-id="userProfile.id"  
-      @like="handlelike" 
-      @reply="handleReply" 
+    <Timeline
+      :posts="currentPosts"
+      :current-user-id="userProfile.id"
+      @like="handlelike"
+      @reply="handleReply"
       @delete="handeleDelete"
     />
   </div>
@@ -184,14 +186,14 @@ const handeleDelete = async (postId: number | string) => {
 
 <style>
 html, body {
-  background-color: #121212 !important; 
+  background-color: #121212 !important;
   margin: 0;
   padding: 0;
 }
 .maincontent {
   margin-top: 85px;
-  margin-left: 303px;  
-  margin-right: 233px; 
+  margin-left: 303px;
+  margin-right: 233px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
