@@ -5,7 +5,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const notifications = useNotifications()
+const notification = useNotifications()
 const token = useCookie('auth_token')
 const userProfile = useUserProfile()
 const activeTab = ref('home')
@@ -47,7 +47,7 @@ const { data: notificationRes, refresh: refreshNotifications } = await useFetch<
 
 watch(notificationRes, (newVal) => {
   if (newVal?.data && Array.isArray(newVal.data)) {
-    notifications.value = newVal.data.map((n: any) => {
+    notification.value = newVal.data.map((n: any) => {
       let msg = '通知があります'
       if (n.type === 'like') msg = ' があなたの投稿にいいねしました'
       if (n.type === 'reply') msg = ' があなたにリプライしました'
