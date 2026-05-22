@@ -1,4 +1,3 @@
-index.vueは下記のように設定書いてください
 <script setup lang="ts">
 import { ref, computed, watch, type PropType } from 'vue'
 
