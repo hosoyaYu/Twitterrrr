@@ -31,35 +31,36 @@ const { data: notificationRes, refresh: refreshNotis } = await useFetch<any>('ht
 const followRequests = computed(() => {
   const combined: any[] = []
 
-
   const rawReqs = requestsRes.value?.data || requestsRes.value || []
   if (Array.isArray(rawReqs)) {
     rawReqs.forEach((req: any) => {
+      const reqUser = req.user || req.follower || req.actor || {}
+      
       combined.push({
-        id: req.followerId, 
-        user: req.user?.displayName || `ユーザー (${req.followerId.slice(0, 8)}...)`,
-        username: req.user?.username || req.followerId,
-        avatarUrl: req.user?.profileImageUrl,
-        isRequest: true 
+        id: req.followerId,
+        user: reqUser.displayName || reqUser.username || `ユーザー (${req.followerId.slice(0, 8)}...)`,
+        username: reqUser.username || req.followerId,
+        avatarUrl: reqUser.profileImageUrl,
+        isRequest: true
       })
     })
   }
 
-
   const rawNotis = notificationRes.value?.data || notificationRes.value || []
   if (Array.isArray(rawNotis)) {
     rawNotis.forEach((n: any) => {
-      let actionMsg = '通知があります'
+      let actionMsg = 'からの通知があります'
       if (n.type === 'like') actionMsg = 'さんがあなたの投稿をいいねしました'
       if (n.type === 'reply') actionMsg = 'さんがあなたに返信しました'
       if (n.type === 'follow') actionMsg = 'さんにフォローされました'
+      if (n.type === 'follow_request') actionMsg = 'さんからフォローリクエストが届きました'
 
       combined.push({
         id: n.id,
-        user: (n.actor?.displayName || '誰か') + ' ' + actionMsg,
+        user: (n.actor?.displayName || n.actor?.username || '誰か') + ' ' + actionMsg,
         username: n.actor?.username || 'unknown',
         avatarUrl: n.actor?.profileImageUrl,
-        isRequest: false 
+        isRequest: false
       })
     })
   }
