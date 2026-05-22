@@ -90,6 +90,7 @@ const formatPosts = (apiData: any) => {
     replyCount: p.replyCount,
     replyToId: p.replyToId,
     avatarUrl: p.author?.profileImageUrl,
+    profileImageUrl: p.author?.profileImageUrl, 
     createdAt: p.createdAt,
     imageUrl: p.images && p.images.length > 0 ? p.images[0] : null,
     isFollowing: p.author?.isFollowing || false
@@ -108,34 +109,62 @@ const followersUsers = computed(() => {
 
 const editName = ref('')
 const editBio = ref('')
+const avatarFile = ref<File | null>(null)
+const previewAvatarUrl = ref<string | null>(null)
 
 const startEditing = () => {
   editName.value = user.value.displayName || user.value.username || ''
   editBio.value = user.value.bio || ''
+  avatarFile.value = null
+  previewAvatarUrl.value = null
   isEditing.value = true 
-}
-
-const saveProfile = async () => {
-  try {
-    const response = await $fetch<any>('https://apg-joetsu.tail02904.ts.net/api/users/me', {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token.value}` },
-      body: { displayName: editName.value, bio: editBio.value }
-    })
-    if (response) {
-      apiResponse.value = response
-      await refreshUser()
-    }
-    isEditing.value = false
-  } catch (err) {
-    console.error(err)
-  }
 }
 
 const onAvatarChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files[0]) {
-    alert('画像アップロード処理は未実装です')
+    avatarFile.value = target.files[0]
+    previewAvatarUrl.value = URL.createObjectURL(target.files[0])
+  }
+}
+
+const saveProfile = async () => {
+  try {
+    let finalImageUrl = user.value.profileImageUrl
+
+    if (avatarFile.value) {
+      const formData = new FormData()
+      formData.append('image', avatarFile.value)
+      
+      const uploadRes: any = await $fetch('https://apg-joetsu.tail02904.ts.net/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token.value}` },
+        body: formData
+      })
+      finalImageUrl = uploadRes?.imageUrl
+    }
+
+    const response = await $fetch<any>('https://apg-joetsu.tail02904.ts.net/api/users/me', {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token.value}` },
+      body: { 
+        displayName: editName.value, 
+        bio: editBio.value,
+        profileImageUrl: finalImageUrl 
+      }
+    })
+    
+    if (response) {
+      apiResponse.value = response
+      await refreshUser()
+    }
+    
+    isEditing.value = false
+    avatarFile.value = null
+    previewAvatarUrl.value = null
+  } catch (err) {
+    console.error('プロフィールの保存に失敗しました:', err)
+    alert('保存に失敗しました。')
   }
 }
 
@@ -186,7 +215,8 @@ const handleDelete = async (postId: number | string) => {
 
       <div class="profile-body">
         <div class="profile-top">
-          <div class="avatar" :style="{ backgroundImage: user.profileImageUrl ? `url(${user.profileImageUrl})` : '' }"></div>
+          <div class="avatar" :style="{ backgroundImage: previewAvatarUrl ? `url(${previewAvatarUrl})` : (user.profileImageUrl ? `url(${user.profileImageUrl})` : '') }"></div>
+          
           <button v-if="!isEditing" class="edit-btn" @click="startEditing">
             プロフィールを編集
           </button>
@@ -209,10 +239,12 @@ const handleDelete = async (postId: number | string) => {
           </div>
           <input v-model="editName" type="text" placeholder="名前" class="edit-input" />
           <textarea v-model="editBio" placeholder="自己紹介" class="edit-textarea"></textarea>
+          
           <label class="file-label">
             アイコンを変更
-            <input type="file" accept="image/*" @change="onAvatarChange" />
+            <input type="file" accept="image/*" @change="onAvatarChange" style="display: block; margin-top: 5px;" />
           </label>
+
           <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button class="save-btn" style="background-color: transparent; color: white; border: 1px solid #555;" @click="isEditing = false">キャンセル</button>
             <button class="save-btn" @click="saveProfile">保存</button>
@@ -237,7 +269,7 @@ const handleDelete = async (postId: number | string) => {
         <div v-if="followingUsers.length > 0">
           <div v-for="f in followingUsers" :key="f.id" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #333;">
             <div style="display:flex; gap: 10px; align-items:center;">
-              <div style="width:40px; height:40px; background:#888; border-radius:50%;"></div>
+              <div class="avatar-mini" :style="{ backgroundImage: f.profileImageUrl ? `url(${f.profileImageUrl})` : '' }"></div>
               <div>
                 <strong>{{ f.displayName || f.username }}</strong><br>
                 <span style="color:#888; font-size:13px;">@{{ f.username }}</span>
@@ -252,7 +284,7 @@ const handleDelete = async (postId: number | string) => {
         <div v-if="followersUsers.length > 0">
           <div v-for="f in followersUsers" :key="f.id" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #333;">
             <div style="display:flex; gap: 10px; align-items:center;">
-              <div style="width:40px; height:40px; background:#888; border-radius:50%;"></div>
+              <div class="avatar-mini" :style="{ backgroundImage: f.profileImageUrl ? `url(${f.profileImageUrl})` : '' }"></div>
               <div>
                 <strong>{{ f.displayName || f.username }}</strong><br>
                 <span style="color:#888; font-size:13px;">@{{ f.username }}</span>
@@ -306,6 +338,15 @@ const handleDelete = async (postId: number | string) => {
   background-color: #888;
   border-radius: 50%;
   border: 4px solid #121212; 
+  background-size: cover;
+  background-position: center;
+}
+/* 🌟 ミニアイコン用の共通スタイルを追加 */
+.avatar-mini {
+  width: 40px;
+  height: 40px;
+  background-color: #888;
+  border-radius: 50%;
   background-size: cover;
   background-position: center;
 }

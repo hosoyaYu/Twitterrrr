@@ -81,6 +81,7 @@ const formatPosts = (apiData: any) => {
     replyCount: p.replyCount,
     replyToId: p.replyToId,
     avatarUrl: p.author?.profileImageUrl,
+    profileImageUrl: p.author?.profileImageUrl, 
     createdAt: p.createdAt,
     imageUrl: p.images && p.images.length > 0 ? p.images[0] : null,
     isFollowing: p.author?.isFollowing || false

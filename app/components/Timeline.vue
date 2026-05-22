@@ -7,7 +7,7 @@
       @click="goToDetail(post.id)"
       style="cursor: pointer;"
     >
-      <div class="user-icon-sample"></div>
+      <div class="user-icon-sample" :style="{ backgroundImage: (post.avatarUrl || post.profileImageUrl) ? `url(${post.avatarUrl || post.profileImageUrl})` : '' }"></div>
       <div class="post-body">
 
         <div v-if="post.replyToId" class="reply-badge">
@@ -134,6 +134,8 @@ const submitReply = (id: number) => {
   background: #aaa;
   border-radius: 50%;
   flex-shrink: 0; 
+  background-size: cover;
+  background-position: center;
 }
 
 .post-body {
