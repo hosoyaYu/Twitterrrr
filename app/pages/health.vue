@@ -15,7 +15,5 @@ const pingServer = async () => {
 </script>
 
 <template>
-    <button @click="pingServer">
-  サーバー確認
-</button>
+<button @click="pingServer">サーバー確認</button>
 </template>

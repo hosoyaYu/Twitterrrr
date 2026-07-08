@@ -1,6 +1,32 @@
 <script setup lang="ts">
 const emit = defineEmits(['notif'])
 
+const logout = async () => {
+  if (!confirm('ログアウトしますか？')) return
+
+  const authToken = useCookie('auth_token')
+  const refreshToken = useCookie('auth_refresh_token') 
+
+  try {
+
+    await $fetch('https://apg-joetsu.tail02904.ts.net/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: {
+        refreshToken: refreshToken.value 
+      }
+    })
+  } catch (e) {
+    
+  } finally {
+
+    authToken.value = null
+    refreshToken.value = null
+    useUserProfile().value = null as any
+    
+    navigateTo('/login')
+  }
+}
 
 </script>
 
@@ -10,6 +36,7 @@ const emit = defineEmits(['notif'])
     <NuxtLink to="/">ホーム</NuxtLink>
     <NuxtLink to="/notification">通知</NuxtLink>
     <NuxtLink to="/profile">マイページ</NuxtLink>
+    <button class="logout" @click="logout">ログアウト</button>
   </aside>
 
   <div class="side_right"></div>
@@ -19,6 +46,21 @@ const emit = defineEmits(['notif'])
 
 
 <style>
+.logout {
+  background-color: transparent;
+  color: white; 
+  border: 1px solid white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+  margin: 20px 0;
+}
+.logout:hover {
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
 .sidebar_left {
   position: fixed;
   top: 85px;

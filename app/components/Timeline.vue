@@ -1,11 +1,24 @@
 <template>
   <div class="timeline-container">
-    <div class="post-card" v-for="post in posts" :key="post.id">
-      <div class="user-icon-sample"></div>
+    <div 
+      class="post-card" 
+      v-for="post in posts" 
+      :key="post.id" 
+      @click="goToDetail(post.id)"
+      style="cursor: pointer;"
+    >
+      <div class="user-icon-sample" :style="{ backgroundImage: (post.avatarUrl || post.profileImageUrl) ? `url(${post.avatarUrl || post.profileImageUrl})` : '' }"></div>
       <div class="post-body">
+
+        <div v-if="post.replyToId" class="reply-badge">
+          <span style="color: #1d9bf0; font-size: 13px; font-weight: bold;">↩ 返信</span>
+        </div>
 
         <div class="user-info">
           <h3 class="username">{{ post.user }}</h3>
+          <div @click.stop>
+            <FollowButton v-if="post.userId !== currentUserId" :targetUserId="post.userId" :targetUsername="post.user" :targetName="post.user" :isPrivate="true" />
+          </div>
           <span v-if="post.visibility === 'followers'" class="visibility-icon">👥</span>
           <span v-if="post.visibility === 'private'" class="visibility-icon">🔒</span>
         </div>
@@ -14,39 +27,55 @@
           <p>{{ post.content }}</p>
         </div>
 
-        <div class="action">
-          <button class="like-button" @click="toggleReply(post.id)">💬{{ post.replies ? post.replies.length : 0}}</button>
-          <button class="like-button" @click="$emit('like', post.id)">♡{{  post.likes }}</button>
-          <button v-i="post.userId === currentUserId" class="like-button delete-button" @click="$emit('delete', post.id)">削除</button>
+        <div v-if="post.imageUrl" class="post-image-container">
+          <img :src="post.imageUrl" class="post-image" alt="投稿画像" loading="lazy" />
         </div>
 
-        <div v-if="activeReplyId === post.id" class="reply-input-area">
+        <div class="action">
+          <button class="like-button" @click.stop="toggleReply(post.id)">
+            💬{{ post.replyCount !== undefined ? post.replyCount : (post.replies ? post.replies.length : 0) }}
+          </button>
+          
+          <button class="like-button" @click.stop="$emit('like', post.id)">
+            ♡{{ post.likes }}
+          </button>
+          
+          <button v-if="post.userId === currentUserId" class="like-button delete-button" @click.stop="$emit('delete', post.id)">
+            削除
+          </button>
+        </div>
+
+        <div v-if="activeReplyId === post.id" class="reply-input-area" @click.stop>
           <input v-model="replyText" type="text" placeholder="返信を投稿" class="reply-input"/>
           <button class="reply-submit-btn" @click="submitReply(post.id)">返信</button>
-        </div>
-
-        <div v-if="post.replies && post.replies.length > 0" class="replies-list">
-          <div v-for="reply in post.replies" :key="reply.id" class="reply-item">
-            <span class="reply-user">{{ reply.user }}</span>
-            <span class="reply-text">{{ reply.content }}</span>
-          </div>
         </div>
 
       </div>
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, type PropType } from 'vue'
+import { useRouter } from 'vue-router'
+import FollowButton from './FollowButton.vue';
 
-defineProps<{
-  posts: any[]
-  currentUserId: string
-}>()
+const props = defineProps({
+  posts: {
+    type: Array as PropType<any[]>,
+    required: true
+  },
+  currentUserId: {
+    type: [String, Number],
+    default: null
+  }
+})
 
 const emit = defineEmits(['like','reply', 'delete'])
+const router = useRouter()
 
+const goToDetail = (id: number | string) => {
+  router.push(`/posts/${id}`)
+}
 
 const activeReplyId =ref<number | null>(null)
 
@@ -88,6 +117,15 @@ const submitReply = (id: number) => {
   gap: 15px;
   background: #121212;
   padding: 10px 0;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+  padding: 15px 20px;
+}
+
+.post-card:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
 }
 
 .user-icon-sample {
@@ -96,6 +134,8 @@ const submitReply = (id: number) => {
   background: #aaa;
   border-radius: 50%;
   flex-shrink: 0; 
+  background-size: cover;
+  background-position: center;
 }
 
 .post-body {
@@ -181,4 +221,21 @@ const submitReply = (id: number) => {
   color: #888;
   margin-right: 8px;
 }
+
+.post-image-cpntainer {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid #333;
+  overflow: hidden;
+  width: 100%;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  display: block;
+}
+
+
 </style>

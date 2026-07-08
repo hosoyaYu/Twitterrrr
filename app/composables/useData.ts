@@ -1,4 +1,4 @@
-import type { st } from "vue-router/dist/index-BzEKChPW.js"
+
 
 export interface Reply{
     id: number
@@ -28,10 +28,20 @@ export const usePosts = () => useState<Post[]>('posts', () => [{
     visibility: 'public',
     replies: []
 }])
-export const useNotifications = () => useState('notifications', () => [])
+export const useNotifications = () => useState<any[]>('notifications', () => [])
 export const useUserProfile = () => useState('userProfile', () => ({
-    id: 'user-123',
-    name: 'テスト',
-    bio: 'これもテスト',
+    id: '',
+    username: '',
+    name: '',
+    bio: '',
     avatarUrl: ''
 }))
+
+export interface FollowRequests {
+    id: number
+    userId: string
+    username: string
+    name: string
+}
+
+export const useFollowRequests = () =>useState<FollowRequests[]>('followRequests', () => [])
